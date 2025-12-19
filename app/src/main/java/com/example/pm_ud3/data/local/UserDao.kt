@@ -1,6 +1,7 @@
 package com.example.pm_ud3.data.local
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -23,6 +24,12 @@ interface UserDao {
     @Query("SELECT * FROM users WHERE pendingDelete = 1")
     suspend fun getPendingDeletes():List<User>
 
+    @Query("SELECT * FROM users WHERE email = :email LIMIT 1")
+    suspend fun getUserByEmail(email: String): User?
+
+    @Query("SELECT * FROM users WHERE firstName = :firstName AND lastName = :lastName LIMIT 1")
+    suspend fun getUserByName(firstName: String, lastName: String): User?
+
     // Escritura
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -37,7 +44,10 @@ interface UserDao {
     @Update
     suspend fun updateUsers(users:List<User>)
 
-    @Update
-    suspend fun deleteUser(user:User)
+    @Delete
+    suspend fun deleteUser(user: User)
+
+    @Query("DELETE FROM users WHERE id = :userId")
+    suspend fun deleteUserById(userId: String)
 
 }

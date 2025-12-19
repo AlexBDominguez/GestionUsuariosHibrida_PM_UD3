@@ -2,7 +2,6 @@ package com.example.pm_ud3.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.room.util.copy
 import com.example.pm_ud3.data.RepositoryResult
 import com.example.pm_ud3.data.TestUsers
 import com.example.pm_ud3.data.UserRepository
@@ -45,17 +44,25 @@ class UserViewModel (
 
 
     //Usuario de prueba
-
     fun addTestUser(){
         viewModelScope.launch {
             val testUser = TestUsers.users.random()
+            val currentUsers = users.value
 
-            val user = testUser.copy(
-                id = "local_${System.nanoTime()}",
-                pendingSync = true,
-                pendingDelete = false
-            )
-            repository.insertUser(user)
+            // Verificar si ya existe un usuario con el mismo email, nombre y apellido para evitar duplicados
+            val userExists = currentUsers.any {
+                it.email == testUser.email ||
+                (it.firstName == testUser.firstName && it.lastName == testUser.lastName)
+            }
+
+            if (!userExists) {
+                val user = testUser.copy(
+                    id = "local_${System.nanoTime()}",
+                    pendingSync = true,
+                    pendingDelete = false
+                )
+                repository.insertUser(user)
+            }
         }
     }
 

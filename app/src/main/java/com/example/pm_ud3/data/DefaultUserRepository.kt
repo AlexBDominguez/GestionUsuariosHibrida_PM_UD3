@@ -25,6 +25,16 @@ class DefaultUserRepository(
 
     override suspend fun insertUser(user: User): RepositoryResult<Unit> {
         return try {
+            // Verificar si ya existe un usuario con el mismo email o nombre completo
+            val existingByEmail = local.getUserByEmail(user.email)
+            val existingByName = local.getUserByName(user.firstName, user.lastName)
+
+            if (existingByEmail != null || existingByName != null) {
+                // El usuario ya existe, no insertar duplicado
+                // Se podría añadir un log aquí si fuera necesario: Log.d("UserRepo", "Usuario duplicado evitado")
+                return RepositoryResult.Success()
+            }
+
             local.insertUser(user.copy(pendingSync = true))
             RepositoryResult.Success()
         } catch (e: Exception) {
@@ -70,8 +80,13 @@ class DefaultUserRepository(
                 if (user.id.startsWith("local_")) {
                     // CREATE
                     val created = remote.createUser(remoteUser)
+                    val newUser = created.toLocalUser().copy(
+                        pendingSync = false,
+                        pendingDelete = false
+                    )
+                    // Primero insertar el nuevo usuario, luego eliminar el local
+                    local.insertUser(newUser)
                     local.deleteUser(user)
-                    local.insertUser(created.toLocalUser())
                 } else {
                     // UPDATE
                     remote.updateUser(user.id, remoteUser)
@@ -86,7 +101,7 @@ class DefaultUserRepository(
                 if (!user.id.startsWith("local_")) {
                     remote.deleteUser(user.id)
                 }
-                local.deleteUser(user)
+                local.deleteUser(user)  // Ahora usa el método @Delete correctamente
             }
 
             RepositoryResult.Success()
@@ -98,27 +113,34 @@ class DefaultUserRepository(
     override suspend fun syncFromServer(): RepositoryResult<Unit> {
         return try {
             val remoteUsers = remote.getAllUsers()
-            val localIds = local.getUsersIds().toSet()
 
-            val usersToInsert = mutableListOf<User>()
-            val usersToUpdate = mutableListOf<User>()
-
+            // Para cada usuario remoto, verificar si ya existe uno local con el mismo email
             for (remoteUser in remoteUsers) {
-                val localUser = remoteUser.toLocalUser()
+                val existingLocalUser = local.getUserByEmail(remoteUser.email)
 
-                if (localIds.contains(remoteUser.id)) {
-                    usersToUpdate.add(localUser)
+                val userToSync = remoteUser.toLocalUser().copy(
+                    pendingSync = false,
+                    pendingDelete = false
+                )
+
+                if (existingLocalUser != null) {
+                    // Si existe un usuario local con el mismo email, actualizar en lugar de insertar
+                    if (existingLocalUser.id.startsWith("local_")) {
+                        // El usuario local necesita actualizarse con el ID del servidor
+                        local.deleteUser(existingLocalUser)
+                        local.insertUser(userToSync)
+                    } else if (existingLocalUser.id != remoteUser.id) {
+                        // IDs diferentes pero mismo email - priorizar el del servidor
+                        local.deleteUserById(existingLocalUser.id)
+                        local.insertUser(userToSync)
+                    } else {
+                        // Mismo ID, solo actualizar los datos
+                        local.insertUser(userToSync)
+                    }
                 } else {
-                    usersToInsert.add(localUser)
+                    // Usuario completamente nuevo, insertar directamente
+                    local.insertUser(userToSync)
                 }
-            }
-
-            if (usersToUpdate.isNotEmpty()) {
-                local.updateUsers(usersToUpdate)
-            }
-
-            if (usersToInsert.isNotEmpty()) {
-                local.insertUsers(usersToInsert)
             }
 
             RepositoryResult.Success()
