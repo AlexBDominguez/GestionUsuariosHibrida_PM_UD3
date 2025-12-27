@@ -17,4 +17,6 @@ interface UserRepository {
 
     suspend fun syncFromServer(): RepositoryResult<Unit>
 
+    // Funciones para testing
+    suspend fun clearLocalDatabase(): RepositoryResult<Unit>
 }

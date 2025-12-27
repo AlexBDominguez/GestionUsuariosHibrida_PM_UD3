@@ -1,5 +1,6 @@
 package com.example.pm_ud3.sensors
 
+import android.content.Context
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -7,10 +8,23 @@ import android.hardware.SensorManager
 import kotlin.math.sqrt
 
 class ShakeDetector(
+    context: Context,
     private val onShake: () -> Unit
 ) : SensorEventListener {
 
     private var lastShakeTime = 0L
+    private val sensorManager: SensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+    private val accelerometer: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+
+    fun start() {
+        accelerometer?.let {
+            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
+        }
+    }
+
+    fun stop() {
+        sensorManager.unregisterListener(this)
+    }
 
     override fun onSensorChanged(event: SensorEvent) {
         if (event.sensor.type != Sensor.TYPE_ACCELEROMETER) return

@@ -34,6 +34,36 @@ object TestUsers {
             userName = "luciam",
             positionTitle = "UX Designer",
             imagen = "https://randomuser.me/api/portraits/women/3.jpg"
+        ),
+        User(
+            id = "",
+            firstName = "Miguel",
+            lastName = "Rodríguez",
+            email = "miguel.rodriguez@test.com",
+            age = 31,
+            userName = "mrodriguez",
+            positionTitle = "Backend Developer",
+            imagen = "https://randomuser.me/api/portraits/men/4.jpg"
+        ),
+        User(
+            id = "",
+            firstName = "Elena",
+            lastName = "Fernández",
+            email = "elena.fernandez@test.com",
+            age = 29,
+            userName = "elenaf",
+            positionTitle = "Frontend Developer",
+            imagen = "https://randomuser.me/api/portraits/women/5.jpg"
+        ),
+        User(
+            id = "",
+            firstName = "David",
+            lastName = "Sánchez",
+            email = "david.sanchez@test.com",
+            age = 38,
+            userName = "dsanchez",
+            positionTitle = "DevOps Engineer",
+            imagen = "https://randomuser.me/api/portraits/men/6.jpg"
         )
     )
 }

@@ -6,29 +6,19 @@ import android.hardware.SensorManager
 import com.example.pm_ud3.viewmodel.UserViewModel
 
 class ShakeSyncCoordinator(
-    context: Context,
-    viewModel: UserViewModel
+    private val context: Context,
+    private val viewModel: UserViewModel
 ) {
 
-    private val sensorManager =
-        context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
-
-    private val accelerometer =
-        sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
-
-    private val detector = ShakeDetector {
+    private val detector = ShakeDetector(context) {
         viewModel.sync()
     }
 
     fun start() {
-        sensorManager.registerListener(
-            detector,
-            accelerometer,
-            SensorManager.SENSOR_DELAY_UI
-        )
+        detector.start()
     }
 
     fun stop() {
-        sensorManager.unregisterListener(detector)
+        detector.stop()
     }
 }

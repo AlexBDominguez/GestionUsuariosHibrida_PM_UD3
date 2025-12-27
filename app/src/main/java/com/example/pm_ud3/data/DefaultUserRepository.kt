@@ -25,14 +25,11 @@ class DefaultUserRepository(
 
     override suspend fun insertUser(user: User): RepositoryResult<Unit> {
         return try {
-            // Verificar si ya existe un usuario con el mismo email o nombre completo
+            // Verificar duplicados solo por email, excluyendo usuarios marcados para eliminar
             val existingByEmail = local.getUserByEmail(user.email)
-            val existingByName = local.getUserByName(user.firstName, user.lastName)
 
-            if (existingByEmail != null || existingByName != null) {
-                // El usuario ya existe, no insertar duplicado
-                // Se podría añadir un log aquí si fuera necesario: Log.d("UserRepo", "Usuario duplicado evitado")
-                return RepositoryResult.Success()
+            if (existingByEmail != null && !existingByEmail.pendingDelete) {
+                return RepositoryResult.Error(Exception("Ya existe un usuario con este email"))
             }
 
             local.insertUser(user.copy(pendingSync = true))
@@ -101,7 +98,7 @@ class DefaultUserRepository(
                 if (!user.id.startsWith("local_")) {
                     remote.deleteUser(user.id)
                 }
-                local.deleteUser(user)  // Ahora usa el método @Delete correctamente
+                local.deleteUser(user)
             }
 
             RepositoryResult.Success()
@@ -114,35 +111,34 @@ class DefaultUserRepository(
         return try {
             val remoteUsers = remote.getAllUsers()
 
-            // Para cada usuario remoto, verificar si ya existe uno local con el mismo email
+            // Insertar o actualizar cada usuario remoto
             for (remoteUser in remoteUsers) {
                 val existingLocalUser = local.getUserByEmail(remoteUser.email)
-
                 val userToSync = remoteUser.toLocalUser().copy(
                     pendingSync = false,
                     pendingDelete = false
                 )
 
                 if (existingLocalUser != null) {
-                    // Si existe un usuario local con el mismo email, actualizar en lugar de insertar
-                    if (existingLocalUser.id.startsWith("local_")) {
-                        // El usuario local necesita actualizarse con el ID del servidor
-                        local.deleteUser(existingLocalUser)
-                        local.insertUser(userToSync)
-                    } else if (existingLocalUser.id != remoteUser.id) {
-                        // IDs diferentes pero mismo email - priorizar el del servidor
-                        local.deleteUserById(existingLocalUser.id)
-                        local.insertUser(userToSync)
-                    } else {
-                        // Mismo ID, solo actualizar los datos
-                        local.insertUser(userToSync)
-                    }
+                    // Usuario existe - actualizar datos
+                    val updatedUser = userToSync.copy(id = existingLocalUser.id)
+                    local.updateUser(updatedUser)
                 } else {
-                    // Usuario completamente nuevo, insertar directamente
+                    // Usuario nuevo - insertar directamente (sin verificaciones adicionales)
                     local.insertUser(userToSync)
                 }
             }
 
+            RepositoryResult.Success()
+        } catch (e: Exception) {
+            RepositoryResult.Error(e)
+        }
+    }
+
+    // Funciones para testing
+    override suspend fun clearLocalDatabase(): RepositoryResult<Unit> {
+        return try {
+            local.deleteAllUsers()
             RepositoryResult.Success()
         } catch (e: Exception) {
             RepositoryResult.Error(e)

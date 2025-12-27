@@ -12,19 +12,19 @@ import androidx.room.RoomDatabase
 )
 
 
-abstract class AppDatabase : RoomDatabase() {
+abstract class UserDatabase : RoomDatabase() {
 
     abstract fun userDao(): UserDao
 
     companion object {
         @Volatile
-        private var INSTANCE: AppDatabase? = null
+        private var INSTANCE: UserDatabase? = null
 
-        fun getDatabase(context: Context): AppDatabase {
+        fun getDatabase(context: Context): UserDatabase {
             return INSTANCE ?: synchronized(this) {
                 Room.databaseBuilder(
                     context.applicationContext,
-                    AppDatabase::class.java,
+                    UserDatabase::class.java,
                     "users_database"
                 ).build().also { INSTANCE = it }
             }

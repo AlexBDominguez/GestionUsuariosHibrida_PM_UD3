@@ -27,6 +27,11 @@ fun UserListScreen(
             TopAppBar(
                 title = { Text("Usuarios") },
                 actions = {
+                    // Botón para limpiar BD (solo para pruebas)
+                    IconButton(onClick = { viewModel.clearDatabase() }) {
+                        Text("🗑️", style = MaterialTheme.typography.titleMedium)
+                    }
+
                     IconButton(onClick = { viewModel.sync() }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Sincronizar con servidor")
                     }
